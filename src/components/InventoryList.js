@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { subscribeItems, deleteItem } from "../services/items";
+import EditItemModal from "./EditItemModal";
 
 function formatUpdatedAt(ts) {
   if (!ts) return "-";
@@ -11,6 +12,7 @@ function formatUpdatedAt(ts) {
 
 export default function InventoryList() {
   const [items, setItems] = useState([]);
+  const [editing, setEditing] = useState(null);
 
   useEffect(() => {
     const unsub = subscribeItems((list) => setItems(list || []));
@@ -24,7 +26,7 @@ export default function InventoryList() {
     if (!ok) return;
     try {
       await deleteItem(id);
-    } catch (e) {
+    } catch (_) {
       alert("Delete failed");
     }
   }
@@ -107,8 +109,19 @@ export default function InventoryList() {
                   {formatUpdatedAt(it.updatedAt)}
                 </td>
                 <td
-                  style={{ padding: "8px", borderBottom: "1px solid #f0f0f0" }}
+                  style={{
+                    padding: "8px",
+                    borderBottom: "1px solid #f0f0f0",
+                    display: "flex",
+                    gap: 8,
+                  }}
                 >
+                  <button
+                    aria-label={`Edit ${it.name}`}
+                    onClick={() => setEditing(it)}
+                  >
+                    Edit
+                  </button>
                   <button
                     aria-label={`Delete ${it.name}`}
                     onClick={() => handleDelete(it.id)}
@@ -121,6 +134,10 @@ export default function InventoryList() {
           </tbody>
         </table>
       </div>
+
+      {editing ? (
+        <EditItemModal item={editing} onClose={() => setEditing(null)} />
+      ) : null}
     </section>
   );
 }
