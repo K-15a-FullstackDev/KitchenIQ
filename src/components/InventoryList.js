@@ -1,9 +1,8 @@
 import { useEffect, useState } from "react";
-import { subscribeItems } from "../services/items";
+import { subscribeItems, deleteItem } from "../services/items";
 
 function formatUpdatedAt(ts) {
   if (!ts) return "-";
-  // Firestore Timestamp can be { seconds, nanoseconds } or have .toDate()
   if (typeof ts.toDate === "function") return ts.toDate().toLocaleString();
   if (typeof ts.seconds === "number")
     return new Date(ts.seconds * 1000).toLocaleString();
@@ -19,6 +18,16 @@ export default function InventoryList() {
       if (typeof unsub === "function") unsub();
     };
   }, []);
+
+  async function handleDelete(id) {
+    const ok = window.confirm("Delete this item?");
+    if (!ok) return;
+    try {
+      await deleteItem(id);
+    } catch (e) {
+      alert("Delete failed");
+    }
+  }
 
   if (!items.length) {
     return (
@@ -44,6 +53,7 @@ export default function InventoryList() {
                 "Reorder Point",
                 "Daily Usage Avg",
                 "Updated At",
+                "Actions",
               ].map((h) => (
                 <th
                   key={h}
@@ -95,6 +105,16 @@ export default function InventoryList() {
                   style={{ padding: "8px", borderBottom: "1px solid #f0f0f0" }}
                 >
                   {formatUpdatedAt(it.updatedAt)}
+                </td>
+                <td
+                  style={{ padding: "8px", borderBottom: "1px solid #f0f0f0" }}
+                >
+                  <button
+                    aria-label={`Delete ${it.name}`}
+                    onClick={() => handleDelete(it.id)}
+                  >
+                    Delete
+                  </button>
                 </td>
               </tr>
             ))}

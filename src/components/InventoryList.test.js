@@ -1,16 +1,25 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import InventoryList from "./InventoryList";
 
+const subscribeItems = jest.fn();
+const deleteItem = jest.fn();
 jest.mock("../services/items", () => ({
-  subscribeItems: jest.fn(),
+  subscribeItems: (...args) => subscribeItems(...args),
+  deleteItem: (...args) => deleteItem(...args),
 }));
-import { subscribeItems } from "../services/items";
 
 beforeEach(() => {
   jest.clearAllMocks();
-  // default noop unsubscribe
   subscribeItems.mockImplementation(() => () => {});
+});
+
+// Provide a confirm stub we can control
+beforeAll(() => {
+  global.confirm = () => true;
+});
+afterAll(() => {
+  delete global.confirm;
 });
 
 test("shows empty state when there are no items", () => {
@@ -45,7 +54,6 @@ test("renders table rows when items are present", () => {
 
   render(<InventoryList />);
 
-  // headers
   [
     "Name",
     "SKU",
@@ -54,13 +62,45 @@ test("renders table rows when items are present", () => {
     "Reorder Point",
     "Daily Usage Avg",
     "Updated At",
+    "Actions",
   ].forEach((h) => expect(screen.getByText(h)).toBeInTheDocument());
 
-  // row content
   expect(screen.getByText("Tomatoes")).toBeInTheDocument();
   expect(screen.getByText("SKU-001")).toBeInTheDocument();
   expect(screen.getByText("kg")).toBeInTheDocument();
   expect(screen.getByText("10")).toBeInTheDocument();
   expect(screen.getByText("5")).toBeInTheDocument();
   expect(screen.getByText("2")).toBeInTheDocument();
+});
+
+test("clicking Delete calls deleteItem with the doc id (confirm=true)", () => {
+  // confirm should return true
+  const confirmSpy = jest.spyOn(global, "confirm").mockReturnValue(true);
+
+  subscribeItems.mockImplementationOnce((cb) => {
+    cb([{ id: "1", name: "Tomatoes" }]);
+    return () => {};
+  });
+
+  render(<InventoryList />);
+
+  fireEvent.click(screen.getByRole("button", { name: /Delete Tomatoes/i }));
+  expect(deleteItem).toHaveBeenCalledWith("1");
+
+  confirmSpy.mockRestore();
+});
+
+test("does not call deleteItem when confirm=false", () => {
+  const confirmSpy = jest.spyOn(global, "confirm").mockReturnValue(false);
+
+  subscribeItems.mockImplementationOnce((cb) => {
+    cb([{ id: "1", name: "Tomatoes" }]);
+    return () => {};
+  });
+
+  render(<InventoryList />);
+  fireEvent.click(screen.getByRole("button", { name: /Delete Tomatoes/i }));
+  expect(deleteItem).not.toHaveBeenCalled();
+
+  confirmSpy.mockRestore();
 });
