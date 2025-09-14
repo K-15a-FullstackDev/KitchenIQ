@@ -10,7 +10,7 @@ function formatUpdatedAt(ts) {
   return "-";
 }
 
-export default function InventoryList() {
+export default function InventoryList({ onSelectItem }) {
   const [items, setItems] = useState([]);
   const [editing, setEditing] = useState(null);
 
@@ -116,6 +116,12 @@ export default function InventoryList() {
                     gap: 8,
                   }}
                 >
+                  <button
+                    aria-label={`Chart ${it.name}`}
+                    onClick={() => onSelectItem && onSelectItem(it)}
+                  >
+                    Chart
+                  </button>
                   <button
                     aria-label={`Edit ${it.name}`}
                     onClick={() => setEditing(it)}

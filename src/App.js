@@ -4,21 +4,22 @@ import { auth } from "./firebase";
 import SignIn from "./components/SignIn";
 import AddItemForm from "./components/AddItemForm";
 import InventoryList from "./components/InventoryList";
+import StockHistoryChart from "./components/StockHistoryChart";
 
 function App() {
   const [user, setUser] = useState(null);
+  const [selectedItem, setSelectedItem] = useState(null);
 
   useEffect(() => {
-    if (!auth) return; // env not set yet
+    if (!auth) return;
     const unsub = auth.onAuthStateChanged((u) => setUser(u));
-    return () => {
-      if (typeof unsub === "function") unsub();
-    };
+    return () => unsub && unsub();
   }, []);
 
   async function handleSignOut() {
     if (!auth) return;
     await auth.signOut();
+    setSelectedItem(null);
   }
 
   return (
@@ -39,11 +40,9 @@ function App() {
             </button>
           </div>
 
-          {/* Create items */}
           <AddItemForm />
-
-          {/* Read-only list (live Firestore subscription) */}
-          <InventoryList />
+          <InventoryList onSelectItem={setSelectedItem} />
+          <StockHistoryChart item={selectedItem} />
         </>
       )}
     </main>
