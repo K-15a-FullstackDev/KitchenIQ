@@ -1,5 +1,8 @@
+// src/components/InventoryList.js
+// Inventory table with Chart/Edit/Delete + prediction badge (days-to-empty) — Firestore v8, 2021-era
 import { useEffect, useState } from "react";
 import { subscribeItems, deleteItem } from "../services/items";
+import { lowStockStatus } from "../utils/prediction";
 import EditItemModal from "./EditItemModal";
 
 function formatUpdatedAt(ts) {
@@ -8,6 +11,32 @@ function formatUpdatedAt(ts) {
   if (typeof ts.seconds === "number")
     return new Date(ts.seconds * 1000).toLocaleString();
   return "-";
+}
+
+function Badge({ item }) {
+  const s = lowStockStatus(item);
+  const dtoe = s.daysToEmpty === Infinity ? "∞d" : `${s.daysToEmpty}d`;
+  const text = s.low
+    ? s.reason === "reorder"
+      ? `LOW — reorder • ${dtoe}`
+      : `LOW — soon • ${dtoe}`
+    : `${dtoe}`;
+
+  const style = {
+    display: "inline-block",
+    marginLeft: 8,
+    padding: "2px 8px",
+    borderRadius: 10,
+    fontSize: 12,
+    background: s.low ? "#fde68a" /* amber-200 */ : "#e5e7eb" /* gray-200 */,
+    color: s.low ? "#7c2d12" /* amber-900 */ : "#111827" /* gray-900 */,
+  };
+
+  return (
+    <span data-testid={`badge-${item.id}`} style={style}>
+      {text}
+    </span>
+  );
 }
 
 export default function InventoryList({ onSelectItem }) {
@@ -71,72 +100,100 @@ export default function InventoryList({ onSelectItem }) {
             </tr>
           </thead>
           <tbody>
-            {items.map((it) => (
-              <tr key={it.id}>
-                <td
-                  style={{ padding: "8px", borderBottom: "1px solid #f0f0f0" }}
-                >
-                  {it.name}
-                </td>
-                <td
-                  style={{ padding: "8px", borderBottom: "1px solid #f0f0f0" }}
-                >
-                  {it.sku}
-                </td>
-                <td
-                  style={{ padding: "8px", borderBottom: "1px solid #f0f0f0" }}
-                >
-                  {it.unit}
-                </td>
-                <td
-                  style={{ padding: "8px", borderBottom: "1px solid #f0f0f0" }}
-                >
-                  {it.currentStock}
-                </td>
-                <td
-                  style={{ padding: "8px", borderBottom: "1px solid #f0f0f0" }}
-                >
-                  {it.reorderPoint}
-                </td>
-                <td
-                  style={{ padding: "8px", borderBottom: "1px solid #f0f0f0" }}
-                >
-                  {it.dailyUsageAvg}
-                </td>
-                <td
-                  style={{ padding: "8px", borderBottom: "1px solid #f0f0f0" }}
-                >
-                  {formatUpdatedAt(it.updatedAt)}
-                </td>
-                <td
-                  style={{
-                    padding: "8px",
-                    borderBottom: "1px solid #f0f0f0",
-                    display: "flex",
-                    gap: 8,
-                  }}
-                >
-                  <button
-                    aria-label={`Chart ${it.name}`}
-                    onClick={() => onSelectItem && onSelectItem(it)}
+            {items.map((it) => {
+              const s = lowStockStatus(it);
+              const rowStyle = s.low
+                ? { background: "#fff7ed" /* orange-50 */ }
+                : {};
+              return (
+                <tr key={it.id} style={rowStyle}>
+                  <td
+                    style={{
+                      padding: "8px",
+                      borderBottom: "1px solid #f0f0f0",
+                    }}
                   >
-                    Chart
-                  </button>
-                  <button
-                    aria-label={`Edit ${it.name}`}
-                    onClick={() => setEditing(it)}
+                    {it.name}
+                    <Badge item={it} />
+                  </td>
+                  <td
+                    style={{
+                      padding: "8px",
+                      borderBottom: "1px solid #f0f0f0",
+                    }}
                   >
-                    Edit
-                  </button>
-                  <button
-                    aria-label={`Delete ${it.name}`}
-                    onClick={() => handleDelete(it.id)}
+                    {it.sku}
+                  </td>
+                  <td
+                    style={{
+                      padding: "8px",
+                      borderBottom: "1px solid #f0f0f0",
+                    }}
                   >
-                    Delete
-                  </button>
-                </td>
-              </tr>
-            ))}
+                    {it.unit}
+                  </td>
+                  <td
+                    style={{
+                      padding: "8px",
+                      borderBottom: "1px solid #f0f0f0",
+                    }}
+                  >
+                    {it.currentStock}
+                  </td>
+                  <td
+                    style={{
+                      padding: "8px",
+                      borderBottom: "1px solid #f0f0f0",
+                    }}
+                  >
+                    {it.reorderPoint}
+                  </td>
+                  <td
+                    style={{
+                      padding: "8px",
+                      borderBottom: "1px solid #f0f0f0",
+                    }}
+                  >
+                    {it.dailyUsageAvg}
+                  </td>
+                  <td
+                    style={{
+                      padding: "8px",
+                      borderBottom: "1px solid #f0f0f0",
+                    }}
+                  >
+                    {formatUpdatedAt(it.updatedAt)}
+                  </td>
+                  <td
+                    style={{
+                      padding: "8px",
+                      borderBottom: "1px solid #f0f0f0",
+                      display: "flex",
+                      gap: 8,
+                    }}
+                  >
+                    <button
+                      aria-label={`Chart ${it.name}`}
+                      onClick={() => onSelectItem && onSelectItem(it)}
+                    >
+                      Chart
+                    </button>
+                    <button
+                      aria-label={`Edit ${it.name}`}
+                      onClick={() => setEditing(it)}
+                    >
+                      Edit
+                    </button>
+                    <button
+                      aria-label={`Delete ${it.name}`}
+                      onClick={() => handleDelete(it.id)}
+                    >
+                      Delete
+                    </button>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
