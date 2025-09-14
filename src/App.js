@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import "./App.css";
 import { auth } from "./firebase";
 import SignIn from "./components/SignIn";
+import AddItemForm from "./components/AddItemForm";
 import InventoryList from "./components/InventoryList";
 
 function App() {
@@ -10,7 +11,9 @@ function App() {
   useEffect(() => {
     if (!auth) return; // env not set yet
     const unsub = auth.onAuthStateChanged((u) => setUser(u));
-    return () => unsub && unsub();
+    return () => {
+      if (typeof unsub === "function") unsub();
+    };
   }, []);
 
   async function handleSignOut() {
@@ -26,17 +29,23 @@ function App() {
       {!user ? (
         <SignIn />
       ) : (
-        <div>
-          <p data-testid="user-email">
-            Signed in as <strong>{user.email}</strong>
-          </p>
-          <button data-testid="signout" onClick={handleSignOut}>
-            Sign out
-          </button>
-        </div>
-      )}
+        <>
+          <div>
+            <p data-testid="user-email">
+              Signed in as <strong>{user.email}</strong>
+            </p>
+            <button data-testid="signout" onClick={handleSignOut}>
+              Sign out
+            </button>
+          </div>
 
-      <InventoryList />
+          {/* Create items */}
+          <AddItemForm />
+
+          {/* Read-only list (live Firestore subscription) */}
+          <InventoryList />
+        </>
+      )}
     </main>
   );
 }
